@@ -1,0 +1,72 @@
+#!/bin/bash
+
+cd ~
+mkdir ~/{Downloads,Desktop,Musics,Videos,Photos,Projects,Documents}/
+cd ~/Downloads/
+
+### Install all of the above pacakges ####
+read -rep $'[\e[1;33mACTION\e[0m] - Would you like to install the packages? (y,n) ' INST
+if [[ $INST == "Y" || $INST == "y" ]]; then
+    #### Check for package manager ####
+    ISYAY=/sbin/yay
+    if [ -f "$ISYAY" ]; then 
+        echo -e "$COK - yay was located, moving on."
+    else 
+        echo -e "$CWR - Yay was NOT located.. yay is (still) required"
+        read -rep $'[\e[1;33mACTION\e[0m] - Would you like to install yay (y,n) ' INSTYAY
+        if [[ $INSTYAY == "Y" || $INSTYAY == "y" ]]; then
+            git clone https://aur.archlinux.org/yay-git.git &>> $INSTLOG
+            cd yay-git
+            makepkg -si --noconfirm &>> ../$INSTLOG
+            cd ..
+        else
+            echo -e "$CER - Yay is (still) required for this script, now exiting"
+            exit
+        fi
+        # update the yay database
+        echo -e "$CNT - Updating the yay database..."
+        yay -Suy --noconfirm &>> $INSTLOG
+    fi
+
+    # Stage 0 - Arch dependencies
+    echo -e "$CNT - Stage 0 - Installing Arch dependencies, this may take a while..."
+    for SOFTWR in gdb ninja gcc cmake meson libxcb xcb-proto xcb-util xcb-util-keysyms libxfixes libx11 libxcomposite xorg-xinput libxrender pixman wayland-protocols cairo pango seatd libxkbcommon xcb-util-wm xorg-xwayland libinput libliftoff libdisplay-info
+    do
+           install_software $SOFTWR 
+    done
+
+    # Stage 1 - main components
+    echo -e "$CNT - Stage 1 - Installing main components, this may take a while..."
+    for SOFTWR in hyprland kitty jq mako waybar-hyprland swww swaylock-effects wofi wlogout xdg-desktop-portal-hyprland swappy grim slurp thunar
+    do
+           install_software $SOFTWR 
+    done
+
+    # Stage 2 - more tools
+    echo -e "$CNT - Stage 2 - Installing additional tools and utilities, this may take a while..."
+    for SOFTWR in polkit-gnome python-requests pamixer pavucontrol brightnessctl bluez bluez-utils blueman network-manager-applet gvfs thunar-archive-plugin file-roller btop pacman-contrib
+    do
+        install_software $SOFTWR
+    done
+
+    # Stage 3 - some visual tools
+    echo -e "$CNT - Stage 3 - Installing theme and visual related tools and utilities, this may take a while..."
+    for SOFTWR in starship ttf-jetbrains-mono-nerd noto-fonts-emoji lxappearance xfce4-settings sddm-git
+    do
+        install_software $SOFTWR
+    done
+
+    # Start the bluetooth service
+    echo -e "$CNT - Starting the Bluetooth Service..."
+    sudo systemctl enable --now bluetooth.service &>> $INSTLOG
+    sleep 2
+
+    # Enable the sddm login manager service
+    echo -e "$CNT - Enabling the SDDM Service..."
+    sudo systemctl enable sddm &>> $INSTLOG
+    sleep 2
+    
+    # Clean out other portals
+    echo -e "$CNT - Cleaning out conflicting xdg portals..."
+    yay -R --noconfirm xdg-desktop-portal-gnome xdg-desktop-portal-gtk &>> $INSTLOG
+fi
